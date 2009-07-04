@@ -1,0 +1,70 @@
+
+<?php
+// $Id$
+
+//TODO add a function to take the file on disk, and turn it into an update_hook_N file.
+//TODO 
+//TODO add an administration level permission to turn this on
+function changecycle_exit(){
+//TODO Add a check to make sure its turned on before we do this.
+global $queries;
+	foreach ($queries as $querycontainer){
+        	$sqlquery = preg_replace("/.*\n\/\*.*\*\/ /", "", $querycontainer[0]);
+		if (_changecycle_keepquery($sqlquery)){
+			//TODO make this a hash so we save only unique queries
+			$page_queries .= _changecycle_format_query_for_output($sqlquery);
+		}
+	}
+
+//TODO make this file location configurable 
+$output =  (_changecycle_file_append_data($page_queries, file_directory_path() . "/queryfile.sql") ? "File Saved at <a href = '/" . file_directory_path() . "/queryfile.sql'>queryfile.sql</a>" : "Error saving sql file");
+
+//TODO - unkludge this later: make it use system message if a debug setting is on or something.`
+	print $output;
+}
+
+function _changecycle_file_append_data($newdata, $file_to_append_to) { 
+    $file_to_open = realpath($file_to_append_to);
+    dprint_r($file_to_open);
+    $olddata = file_get_contents($file_to_open);
+    $olddata .= $newdata;
+    $retval = file_save_data($olddata, $file_to_append_to, FILE_EXISTS_REPLACE);
+  return $retval;
+}
+
+function _changecycle_format_query_for_output($sql_query_string){
+   //TODO change this to be valid php for putting into a hook_update_N(); 
+      return ($sql_query_string . "\n");
+}
+
+function _changecycle_keepquery($sql_querystring){
+	//TODO Filter out all the queries we dont want.  for now we guess at it. Later this should be configurable by table, perhaps there are tablename regexes stored in the db?.
+  if (stripos($sql_querystring, 'SELECT') === 0 ||
+        stripos($sql_querystring, 'INSERT INTO cache') === 0 ||
+        stripos($sql_querystring, 'INSERT INTO search_') === 0 ||
+        stripos($sql_querystring, 'INSERT INTO watchdog') === 0 ||
+        stripos($sql_querystring, 'INSERT INTO system') === 0 ||
+        strpos($sql_querystring, 'UPDATE cache') === 0 ||
+        strpos($sql_querystring, 'UPDATE history') === 0 ||
+        strpos($sql_querystring, 'SHOW TABLES') === 0 ||
+        strpos($sql_querystring, 'UPDATE system') === 0 ||
+        strpos($sql_querystring, 'UPDATE sessions') === 0 ||
+        strpos($sql_querystring, 'UPDATE users SET access =') === 0 ||
+        strpos($sql_querystring, 'UPDATE search_total') === 0 ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'update_last_check') === TRUE) ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'poormanscron_lastrun') === TRUE) ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'node_cron_comments_scale') === TRUE) ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'node_cron_views_scale') === TRUE) ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'node_cron_last') === TRUE) ||
+        (strpos($sql_querystring, 'UPDATE variable') === 0 && strpos($sql_querystring, 'cron_last') === TRUE)) {
+      $process = FALSE;
+    }
+        if (!preg_match("/SELECT/", $sqlquery)){
+                if (preg_match("/cache_/", $sqlquery)){
+                        $sqlquery = "cache hit<br>";
+                }
+                print "<p>$sqlquery</p>\n";
+        }
+
+	return TRUE;
+}

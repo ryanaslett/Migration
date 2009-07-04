@@ -1,0 +1,5 @@
+; $Id$
+name = ChangeCycle
+package = ChangeCycle
+description = Humble beginnings of proper change management. Name goes here.
+core = 6.x
